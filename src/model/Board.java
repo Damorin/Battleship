@@ -1,22 +1,28 @@
 package model;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+
+import java.util.*;
 
 public class Board implements Model {
 
     private static final int SIZE = 10;
 
-    private List<List<BoardCoord>> enemyShipPositions;
+    private Random rng;
 
-    private List<List<BoardCoord>> friendlyShipPositions;
-    private List<List<BoardCoord>> friendlyFirePositions;
+    private ObservableList<ObservableList<BoardCoord>> shipPositions;
+    private ObservableList<ObservableList<BoardCoord>> firePositions;
 
     private Map<String, Integer> alphaMappings;
 
+    private Map<Ship, Integer> shipSizes;
+
     public Board() {
+
+        rng = new Random();
+
         alphaMappings = new HashMap<>();
         alphaMappings.put("A", 0);
         alphaMappings.put("B", 1);
@@ -28,67 +34,125 @@ public class Board implements Model {
         alphaMappings.put("H", 7);
         alphaMappings.put("I", 8);
         alphaMappings.put("J", 9);
+
         initializeBoards();
+
+        initializeShipTypes();
+        addShip(Ship.CARRIER);
+        addShip(Ship.BATTLESHIP);
+        addShip(Ship.CRUISER);
+        addShip(Ship.SUBMARINE);
+        addShip(Ship.SUBMARINE);
+        addShip(Ship.DESTROYER);
     }
 
     private void initializeBoards() {
-        enemyShipPositions = new ArrayList<>();
+        shipPositions = FXCollections.observableArrayList();
         for (int i = 0; i < SIZE; i++) {
-            enemyShipPositions.add(new ArrayList<>());
+            shipPositions.add(FXCollections.observableArrayList());
             for (int j = 0; j < SIZE; j++) {
-                enemyShipPositions.get(i).add(BoardCoord.EMPTY);
+                shipPositions.get(i).add(BoardCoord.EMPTY);
             }
         }
 
-        friendlyShipPositions = new ArrayList<>();
+        firePositions = FXCollections.observableArrayList();
         for (int i = 0; i < SIZE; i++) {
-            friendlyShipPositions.add(new ArrayList<>());
+            firePositions.add(FXCollections.observableArrayList());
             for (int j = 0; j < SIZE; j++) {
-                friendlyShipPositions.get(i).add(BoardCoord.EMPTY);
-            }
-        }
-
-        friendlyFirePositions = new ArrayList<>();
-        for (int i = 0; i < SIZE; i++) {
-            friendlyFirePositions.add(new ArrayList<>());
-            for (int j = 0; j < SIZE; j++) {
-                friendlyFirePositions.get(i).add(BoardCoord.EMPTY);
+                firePositions.get(i).add(BoardCoord.EMPTY);
             }
         }
     }
 
-    public List<List<BoardCoord>> getEnemyShipPositions() {
-        return enemyShipPositions;
+    @Override
+    public ObservableList<ObservableList<BoardCoord>> getFirePositions() {
+        return firePositions;
     }
 
-    public List<List<BoardCoord>> getFriendlyFirePositions() {
-        return friendlyFirePositions;
-    }
-
-    public List<List<BoardCoord>> getFriendlyShipPositions() {
-        return friendlyShipPositions;
+    @Override
+    public ObservableList<ObservableList<BoardCoord>> getShipPositions() {
+        return shipPositions;
     }
 
     @Override
     public void fireAt(String coords) {
-        int yPos = Integer.parseInt(coords.substring(1))-1;
-        int xPos = alphaMappings.get(coords.substring(0, 1).toUpperCase());
+        int x = alphaMappings.get(coords.substring(0, 1).toUpperCase());
+        int y = Integer.parseInt(coords.substring(1)) - 1;
         if (coords.length() == 2) {
-            friendlyFirePositions.get(yPos).add(xPos, BoardCoord.HIT);
-        } else {
-            friendlyFirePositions.get(yPos).add(xPos, BoardCoord.MISS);
+            if (shipPositions.get(y).get(x) == BoardCoord.SHIP) {
+                firePositions.get(y).set(x, BoardCoord.HIT);
+                System.out.println(firePositions.get(y).get(x));
+            } else {
+                firePositions.get(y).set(x, BoardCoord.MISS);
+                System.out.println(firePositions.get(y).get(x));
+            }
         }
     }
 
     @Override
-    public void displayBoards() {
-        for(int y = 0; y < SIZE; y++) {
-            for (int x = 0; x < SIZE; x++) {
-                System.out.print(friendlyFirePositions.get(y).get(x));
-            }
-            System.out.println();
+    public void addBoardListener(ListChangeListener boardListener) {
+        for (ObservableList<BoardCoord> row : firePositions) {
+            row.addListener(boardListener);
         }
     }
 
+    @Override
+    public int getBoardSize() {
+        return this.SIZE;
+    }
 
+    private void addShip(Ship type) {
+
+        int x, y;
+
+        int shipSize = shipSizes.get(type);
+
+        boolean isHorizontal = rng.nextBoolean();
+        boolean isShipPlaceable = false;
+
+        while (!isShipPlaceable) {
+            x = rng.nextInt(SIZE - shipSize);
+            y = rng.nextInt(SIZE - shipSize);
+
+
+            if (shipPositions.get(y).get(x) == BoardCoord.EMPTY) {
+                isShipPlaceable = true;
+                if (isHorizontal) {
+                    for (int j = 0; j < shipSize; j++) {
+                        if (shipPositions.get(y).get(x + j) == BoardCoord.SHIP) {
+                            isShipPlaceable = false;
+                        }
+                    }
+                    if (isShipPlaceable) {
+                        for (int k = 0; k < shipSize; k++) {
+                            shipPositions.get(y).add(x + k, BoardCoord.SHIP);
+                        }
+                    }
+                } else {
+                    for (int j = 0; j < shipSize; j++) {
+                        if (shipPositions.get(y + j).get(x) == BoardCoord.SHIP) {
+                            isShipPlaceable = false;
+                        }
+                    }
+                    if (isShipPlaceable) {
+                        for (int k = 0; k < shipSize; k++) {
+                            shipPositions.get(y + k).add(x, BoardCoord.SHIP);
+                        }
+                    }
+                }
+            }
+        }
+
+        System.out.println(type.toString() + " placed");
+
+    }
+
+    private void initializeShipTypes() {
+        shipSizes = new HashMap<>();
+        shipSizes.put(Ship.CARRIER, 5);
+        shipSizes.put(Ship.BATTLESHIP, 4);
+        shipSizes.put(Ship.CRUISER, 3);
+        shipSizes.put(Ship.SUBMARINE, 3);
+        shipSizes.put(Ship.DESTROYER, 2);
+    }
 }

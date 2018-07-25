@@ -2,6 +2,7 @@ package controller;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.ListChangeListener;
 import model.Model;
 import ui.View;
 
@@ -12,8 +13,9 @@ public class BoardController implements Controller {
 
     public BoardController(Model model, View view) {
         this.model = model;
-        this.view = view;
+        this.model.addBoardListener(new BoardListener());
 
+        this.view = view;
         this.view.addFireListener(new FireListener());
     }
 
@@ -26,7 +28,13 @@ public class BoardController implements Controller {
         @Override
         public void changed(ObservableValue observable, Object oldValue, Object newValue) {
             model.fireAt(newValue.toString());
-            model.displayBoards();
+        }
+    }
+
+    private class BoardListener implements ListChangeListener {
+        @Override
+        public void onChanged(Change c) {
+            view.displayBoards(model.getFirePositions(), model.getBoardSize());
         }
     }
 }

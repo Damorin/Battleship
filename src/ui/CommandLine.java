@@ -3,6 +3,8 @@ package ui;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ObservableList;
+import model.BoardCoord;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +45,20 @@ public class CommandLine implements View {
     @Override
     public void addFireListener(ChangeListener fireListener) {
         firePosition.addListener(fireListener);
+    }
+
+    @Override
+    public void displayBoards(ObservableList<ObservableList<BoardCoord>> firePositions, int SIZE) {
+        System.out.println("Fire Positions");
+
+        System.out.println("A B C D E F G H I J");
+        for (int y = 0; y < SIZE; y++) {
+            System.out.print(y + 1 + ": ");
+            for (int x = 0; x < SIZE; x++) {
+                System.out.print(firePositions.get(y).get(x) + " ");
+            }
+            System.out.println();
+        }
     }
 
 
